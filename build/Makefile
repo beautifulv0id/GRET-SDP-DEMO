@@ -111,6 +111,19 @@ depend:
 .PHONY : depend
 
 #=============================================================================
+# Target rules for targets named gret-sdp-demo
+
+# Build rule for target.
+gret-sdp-demo: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 gret-sdp-demo
+.PHONY : gret-sdp-demo
+
+# fast build rule for target.
+gret-sdp-demo/fast:
+	$(MAKE) -f CMakeFiles/gret-sdp-demo.dir/build.make CMakeFiles/gret-sdp-demo.dir/build
+.PHONY : gret-sdp-demo/fast
+
+#=============================================================================
 # Target rules for targets named sdpa_exe
 
 # Build rule for target.
@@ -230,6 +243,33 @@ examples/sdpa_exe.cpp.s:
 	$(MAKE) -f CMakeFiles/sdpa_exe.dir/build.make CMakeFiles/sdpa_exe.dir/examples/sdpa_exe.cpp.s
 .PHONY : examples/sdpa_exe.cpp.s
 
+gret-sdp-demo.o: gret-sdp-demo.cpp.o
+
+.PHONY : gret-sdp-demo.o
+
+# target to build an object file
+gret-sdp-demo.cpp.o:
+	$(MAKE) -f CMakeFiles/gret-sdp-demo.dir/build.make CMakeFiles/gret-sdp-demo.dir/gret-sdp-demo.cpp.o
+.PHONY : gret-sdp-demo.cpp.o
+
+gret-sdp-demo.i: gret-sdp-demo.cpp.i
+
+.PHONY : gret-sdp-demo.i
+
+# target to preprocess a source file
+gret-sdp-demo.cpp.i:
+	$(MAKE) -f CMakeFiles/gret-sdp-demo.dir/build.make CMakeFiles/gret-sdp-demo.dir/gret-sdp-demo.cpp.i
+.PHONY : gret-sdp-demo.cpp.i
+
+gret-sdp-demo.s: gret-sdp-demo.cpp.s
+
+.PHONY : gret-sdp-demo.s
+
+# target to generate assembly for a file
+gret-sdp-demo.cpp.s:
+	$(MAKE) -f CMakeFiles/gret-sdp-demo.dir/build.make CMakeFiles/gret-sdp-demo.dir/gret-sdp-demo.cpp.s
+.PHONY : gret-sdp-demo.cpp.s
+
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -238,6 +278,7 @@ help:
 	@echo "... depend"
 	@echo "... rebuild_cache"
 	@echo "... edit_cache"
+	@echo "... gret-sdp-demo"
 	@echo "... sdpa_exe"
 	@echo "... example5"
 	@echo "... example1"
@@ -250,6 +291,9 @@ help:
 	@echo "... examples/sdpa_exe.o"
 	@echo "... examples/sdpa_exe.i"
 	@echo "... examples/sdpa_exe.s"
+	@echo "... gret-sdp-demo.o"
+	@echo "... gret-sdp-demo.i"
+	@echo "... gret-sdp-demo.s"
 .PHONY : help
 
 

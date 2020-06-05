@@ -1,0 +1,86 @@
+{
+	"configurations" : 
+	[
+		{
+			"directories" : 
+			[
+				{
+					"build" : ".",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.10"
+					},
+					"projectIndex" : 0,
+					"source" : ".",
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						2,
+						3
+					]
+				}
+			],
+			"name" : "Release",
+			"projects" : 
+			[
+				{
+					"directoryIndexes" : 
+					[
+						0
+					],
+					"name" : "EX1",
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						2,
+						3
+					]
+				}
+			],
+			"targets" : 
+			[
+				{
+					"directoryIndex" : 0,
+					"id" : "example1::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-example1-Release-8e82f0a52393598ed218.json",
+					"name" : "example1",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "example5::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-example5-Release-e308725a34a2795f5e9c.json",
+					"name" : "example5",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "gret-sdp-demo::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-gret-sdp-demo-Release-08287902f29e1367986f.json",
+					"name" : "gret-sdp-demo",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "sdpa_exe::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-sdpa_exe-Release-c78587fc56525a1229bf.json",
+					"name" : "sdpa_exe",
+					"projectIndex" : 0
+				}
+			]
+		}
+	],
+	"kind" : "codemodel",
+	"paths" : 
+	{
+		"build" : "/home/felix/Workspace/GSoC20/SDP_Solver/SDPA/build",
+		"source" : "/home/felix/Workspace/GSoC20/SDP_Solver/SDPA"
+	},
+	"version" : 
+	{
+		"major" : 2,
+		"minor" : 0
+	}
+}

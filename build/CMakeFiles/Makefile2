@@ -53,6 +53,7 @@ CMAKE_BINARY_DIR = /home/felix/Workspace/GSoC20/SDP_Solver/SDPA/build
 # Directory level rules for the build root directory
 
 # The main recursive "all" target.
+all: CMakeFiles/gret-sdp-demo.dir/all
 all: CMakeFiles/sdpa_exe.dir/all
 all: CMakeFiles/example5.dir/all
 all: CMakeFiles/example1.dir/all
@@ -65,11 +66,39 @@ preinstall:
 .PHONY : preinstall
 
 # The main recursive "clean" target.
+clean: CMakeFiles/gret-sdp-demo.dir/clean
 clean: CMakeFiles/sdpa_exe.dir/clean
 clean: CMakeFiles/example5.dir/clean
 clean: CMakeFiles/example1.dir/clean
 
 .PHONY : clean
+
+#=============================================================================
+# Target rules for target CMakeFiles/gret-sdp-demo.dir
+
+# All Build rule for target.
+CMakeFiles/gret-sdp-demo.dir/all:
+	$(MAKE) -f CMakeFiles/gret-sdp-demo.dir/build.make CMakeFiles/gret-sdp-demo.dir/depend
+	$(MAKE) -f CMakeFiles/gret-sdp-demo.dir/build.make CMakeFiles/gret-sdp-demo.dir/build
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/home/felix/Workspace/GSoC20/SDP_Solver/SDPA/build/CMakeFiles --progress-num=5,6 "Built target gret-sdp-demo"
+.PHONY : CMakeFiles/gret-sdp-demo.dir/all
+
+# Build rule for subdir invocation for target.
+CMakeFiles/gret-sdp-demo.dir/rule: cmake_check_build_system
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/felix/Workspace/GSoC20/SDP_Solver/SDPA/build/CMakeFiles 2
+	$(MAKE) -f CMakeFiles/Makefile2 CMakeFiles/gret-sdp-demo.dir/all
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/felix/Workspace/GSoC20/SDP_Solver/SDPA/build/CMakeFiles 0
+.PHONY : CMakeFiles/gret-sdp-demo.dir/rule
+
+# Convenience name for target.
+gret-sdp-demo: CMakeFiles/gret-sdp-demo.dir/rule
+
+.PHONY : gret-sdp-demo
+
+# clean rule for target.
+CMakeFiles/gret-sdp-demo.dir/clean:
+	$(MAKE) -f CMakeFiles/gret-sdp-demo.dir/build.make CMakeFiles/gret-sdp-demo.dir/clean
+.PHONY : CMakeFiles/gret-sdp-demo.dir/clean
 
 #=============================================================================
 # Target rules for target CMakeFiles/sdpa_exe.dir
@@ -78,7 +107,7 @@ clean: CMakeFiles/example1.dir/clean
 CMakeFiles/sdpa_exe.dir/all:
 	$(MAKE) -f CMakeFiles/sdpa_exe.dir/build.make CMakeFiles/sdpa_exe.dir/depend
 	$(MAKE) -f CMakeFiles/sdpa_exe.dir/build.make CMakeFiles/sdpa_exe.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/home/felix/Workspace/GSoC20/SDP_Solver/SDPA/build/CMakeFiles --progress-num=5,6 "Built target sdpa_exe"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/home/felix/Workspace/GSoC20/SDP_Solver/SDPA/build/CMakeFiles --progress-num=7,8 "Built target sdpa_exe"
 .PHONY : CMakeFiles/sdpa_exe.dir/all
 
 # Build rule for subdir invocation for target.

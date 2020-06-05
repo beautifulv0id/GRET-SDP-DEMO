@@ -60,15 +60,15 @@ include CMakeFiles/sdpa_exe.dir/flags.make
 CMakeFiles/sdpa_exe.dir/examples/sdpa_exe.cpp.o: CMakeFiles/sdpa_exe.dir/flags.make
 CMakeFiles/sdpa_exe.dir/examples/sdpa_exe.cpp.o: ../examples/sdpa_exe.cpp
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/felix/Workspace/GSoC20/SDP_Solver/SDPA/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building CXX object CMakeFiles/sdpa_exe.dir/examples/sdpa_exe.cpp.o"
-	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/sdpa_exe.dir/examples/sdpa_exe.cpp.o -c /home/felix/Workspace/GSoC20/SDP_Solver/SDPA/examples/sdpa_exe.cpp
+	/bin/g++-9  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/sdpa_exe.dir/examples/sdpa_exe.cpp.o -c /home/felix/Workspace/GSoC20/SDP_Solver/SDPA/examples/sdpa_exe.cpp
 
 CMakeFiles/sdpa_exe.dir/examples/sdpa_exe.cpp.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/sdpa_exe.dir/examples/sdpa_exe.cpp.i"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/felix/Workspace/GSoC20/SDP_Solver/SDPA/examples/sdpa_exe.cpp > CMakeFiles/sdpa_exe.dir/examples/sdpa_exe.cpp.i
+	/bin/g++-9 $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/felix/Workspace/GSoC20/SDP_Solver/SDPA/examples/sdpa_exe.cpp > CMakeFiles/sdpa_exe.dir/examples/sdpa_exe.cpp.i
 
 CMakeFiles/sdpa_exe.dir/examples/sdpa_exe.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/sdpa_exe.dir/examples/sdpa_exe.cpp.s"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/felix/Workspace/GSoC20/SDP_Solver/SDPA/examples/sdpa_exe.cpp -o CMakeFiles/sdpa_exe.dir/examples/sdpa_exe.cpp.s
+	/bin/g++-9 $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/felix/Workspace/GSoC20/SDP_Solver/SDPA/examples/sdpa_exe.cpp -o CMakeFiles/sdpa_exe.dir/examples/sdpa_exe.cpp.s
 
 # Object files for target sdpa_exe
 sdpa_exe_OBJECTS = \
@@ -84,7 +84,7 @@ sdpa_exe: ../external/sdpa-7.3.8/mumps/build/lib/libdmumps.a
 sdpa_exe: ../external/sdpa-7.3.8/mumps/build/lib/libmumps_common.a
 sdpa_exe: ../external/sdpa-7.3.8/mumps/build/lib/libpord.a
 sdpa_exe: ../external/sdpa-7.3.8/mumps/build/libseq/libmpiseq.a
-sdpa_exe: ../external/OpenBLAS/libopenblas.a
+sdpa_exe: /usr/lib/x86_64-linux-gnu/libopenblas.a
 sdpa_exe: /usr/lib/x86_64-linux-gnu/libgfortran.so.5
 sdpa_exe: /usr/lib/x86_64-linux-gnu/libgfortran.so.5
 sdpa_exe: CMakeFiles/sdpa_exe.dir/link.txt

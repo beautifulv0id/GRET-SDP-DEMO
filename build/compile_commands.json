@@ -1,0 +1,22 @@
+[
+{
+  "directory": "/home/felix/Workspace/GSoC20/SDP_Solver/SDPA/build",
+  "command": "/bin/g++-9   -I/home/felix/Workspace/GSoC20/SDP_Solver/SDPA/external/include -I/home/felix/Workspace/GSoC20/SDP_Solver/SDPA/external/sdpa-7.3.8/mumps/build/include -isystem /usr/include/eigen3  -O3 -DNDEBUG   -o CMakeFiles/gret-sdp-demo.dir/gret-sdp-demo.cpp.o -c /home/felix/Workspace/GSoC20/SDP_Solver/SDPA/gret-sdp-demo.cpp",
+  "file": "/home/felix/Workspace/GSoC20/SDP_Solver/SDPA/gret-sdp-demo.cpp"
+},
+{
+  "directory": "/home/felix/Workspace/GSoC20/SDP_Solver/SDPA/build",
+  "command": "/bin/g++-9   -I/usr/include/eigen3 -I/home/felix/Workspace/GSoC20/SDP_Solver/SDPA/external/include -I/home/felix/Workspace/GSoC20/SDP_Solver/SDPA/external/sdpa-7.3.8/mumps/build/include  -O3 -DNDEBUG   -o CMakeFiles/sdpa_exe.dir/examples/sdpa_exe.cpp.o -c /home/felix/Workspace/GSoC20/SDP_Solver/SDPA/examples/sdpa_exe.cpp",
+  "file": "/home/felix/Workspace/GSoC20/SDP_Solver/SDPA/examples/sdpa_exe.cpp"
+},
+{
+  "directory": "/home/felix/Workspace/GSoC20/SDP_Solver/SDPA/build",
+  "command": "/bin/g++-9   -I/usr/include/eigen3 -I/home/felix/Workspace/GSoC20/SDP_Solver/SDPA/external/include -I/home/felix/Workspace/GSoC20/SDP_Solver/SDPA/external/sdpa-7.3.8/mumps/build/include  -O3 -DNDEBUG   -o CMakeFiles/example5.dir/examples/example5.cpp.o -c /home/felix/Workspace/GSoC20/SDP_Solver/SDPA/examples/example5.cpp",
+  "file": "/home/felix/Workspace/GSoC20/SDP_Solver/SDPA/examples/example5.cpp"
+},
+{
+  "directory": "/home/felix/Workspace/GSoC20/SDP_Solver/SDPA/build",
+  "command": "/bin/g++-9   -I/usr/include/eigen3 -I/home/felix/Workspace/GSoC20/SDP_Solver/SDPA/external/include -I/home/felix/Workspace/GSoC20/SDP_Solver/SDPA/external/sdpa-7.3.8/mumps/build/include  -O3 -DNDEBUG   -o CMakeFiles/example1.dir/examples/example1.cpp.o -c /home/felix/Workspace/GSoC20/SDP_Solver/SDPA/examples/example1.cpp",
+  "file": "/home/felix/Workspace/GSoC20/SDP_Solver/SDPA/examples/example1.cpp"
+}
+]

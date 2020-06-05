@@ -60,15 +60,15 @@ include CMakeFiles/example5.dir/flags.make
 CMakeFiles/example5.dir/examples/example5.cpp.o: CMakeFiles/example5.dir/flags.make
 CMakeFiles/example5.dir/examples/example5.cpp.o: ../examples/example5.cpp
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/felix/Workspace/GSoC20/SDP_Solver/SDPA/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building CXX object CMakeFiles/example5.dir/examples/example5.cpp.o"
-	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/example5.dir/examples/example5.cpp.o -c /home/felix/Workspace/GSoC20/SDP_Solver/SDPA/examples/example5.cpp
+	/bin/g++-9  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/example5.dir/examples/example5.cpp.o -c /home/felix/Workspace/GSoC20/SDP_Solver/SDPA/examples/example5.cpp
 
 CMakeFiles/example5.dir/examples/example5.cpp.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/example5.dir/examples/example5.cpp.i"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/felix/Workspace/GSoC20/SDP_Solver/SDPA/examples/example5.cpp > CMakeFiles/example5.dir/examples/example5.cpp.i
+	/bin/g++-9 $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/felix/Workspace/GSoC20/SDP_Solver/SDPA/examples/example5.cpp > CMakeFiles/example5.dir/examples/example5.cpp.i
 
 CMakeFiles/example5.dir/examples/example5.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/example5.dir/examples/example5.cpp.s"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/felix/Workspace/GSoC20/SDP_Solver/SDPA/examples/example5.cpp -o CMakeFiles/example5.dir/examples/example5.cpp.s
+	/bin/g++-9 $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/felix/Workspace/GSoC20/SDP_Solver/SDPA/examples/example5.cpp -o CMakeFiles/example5.dir/examples/example5.cpp.s
 
 # Object files for target example5
 example5_OBJECTS = \
@@ -84,7 +84,7 @@ example5: ../external/sdpa-7.3.8/mumps/build/lib/libdmumps.a
 example5: ../external/sdpa-7.3.8/mumps/build/lib/libmumps_common.a
 example5: ../external/sdpa-7.3.8/mumps/build/lib/libpord.a
 example5: ../external/sdpa-7.3.8/mumps/build/libseq/libmpiseq.a
-example5: ../external/OpenBLAS/libopenblas.a
+example5: /usr/lib/x86_64-linux-gnu/libopenblas.a
 example5: /usr/lib/x86_64-linux-gnu/libgfortran.so.5
 example5: /usr/lib/x86_64-linux-gnu/libgfortran.so.5
 example5: CMakeFiles/example5.dir/link.txt
