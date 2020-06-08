@@ -14,6 +14,7 @@ using MatrixType = Eigen::Matrix<Scalar, d+1, d+1>;
 using VectorType = Eigen::Matrix<Scalar, d, 1>;
 using RigidTransformation = std::tuple<MatrixType, VectorType>;
 using MatrixX = Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>;
+using VectorX = Eigen::Matrix<Scalar, Eigen::Dynamic, 1>;
 
 template <typename InRange>
 void CreateSpiral(InRange& in, const size_t n){
@@ -31,12 +32,54 @@ void CreateSpiral(InRange& in, const size_t n){
   }
 }
 
-template <typename InRange, typename TrRange>
-void GeneratePatches(const InRange& pointCloud, TrRange& transformations, 
-                      Eigen::Ref<MatrixX> L, Eigen::Ref<MatrixX> B, Eigen::Ref<MatrixX> D){
+MatrixType GenerateTransformationMatrix(){
+  MatrixType rm = MatrixType::Zero();
+  rm(d,d) = 1;
 
+  // generate rotation matrix
+  VectorX eul(d);
+  Scalar sign;
+  for(int i = 0; i < d; i++){
+    sign = rand() % 2 == 0? -1 : 1;
+    eul(i) = sign * M_PI * ((double) rand() / (RAND_MAX));
+  }
+
+  Scalar a = eul(0);
+  Scalar b = eul(1);
+  Scalar y = eul(2);
+
+  rm(0,0) = cos(a)*cos(b);
+  rm(0,1) = cos(a)*sin(b)-sin(a)*cos(y);
+  rm(0,2) = cos(a)*sin(b)*cos(y)+sin(a)*sin(y);
+  rm(1,0) = sin(a)*cos(b);
+  rm(1,1) = sin(a)*sin(b)*sin(y)+cos(a)*cos(y);
+  rm(1,2) = sin(a)*sin(b)*cos(y)-cos(a)*sin(y);
+  rm(2,0) = -sin(b);
+  rm(2,1) = cos(b)*sin(y);
+  rm(2,2) = cos(b)*cos(y);
+
+  // generate translation vector
+  Scalar scale = 2;
+  for(int i = 0; i < d; i++){
+    sign = rand() % 2 == 0? -1 : 1;
+    rm(i,3) = sign * ((double) rand() / (RAND_MAX)) * scale;
+  }
+  return rm;
+}
+
+
+template <typename TrRange>
+void GenerateTrafos(TrRange& transformations){
   for(int i = 0; i < m; i++){
-    
+    transformations.push_back(GenerateTransformationMatrix());
+  }
+}
+
+template <typename InRange, typename TrRange>
+void GeneratePatches(const InRange& pointCloud, TrRange& transformations,
+                      Eigen::Ref<MatrixX> L, Eigen::Ref<MatrixX> B, Eigen::Ref<MatrixX> D){
+  GenerateTrafos(transformations);
+  for(int i = 0; i < m; i++){
   }
 }
 
@@ -48,7 +91,7 @@ int main ()
   spiral.reserve(n);
   CreateSpiral(spiral, n);
 
-  vector<RigidTransformation> originalTransformations;
+  vector<MatrixType> originalTransformations;
   originalTransformations.reserve(m);
   MatrixX L(n+m, n+m);
   MatrixX B(m*d, n+m);

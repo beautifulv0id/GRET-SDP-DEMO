@@ -244,8 +244,8 @@ SDPA_INCLUDE_DIR:PATH=/home/felix/Workspace/GSoC20/SDP_Solver/SDPA/external/incl
 //Path to a library.
 SDPA_LIBRARY:FILEPATH=/home/felix/Workspace/GSoC20/SDP_Solver/SDPA/external/lib/libsdpa.a
 
-//No help, variable specified on the command line.
-SDPA_ROOT_DIR:STRING=../external/
+//SDPA root directory.
+SDPA_ROOT_DIR:PATH=/home/felix/Workspace/GSoC20/SDP_Solver/SDPA/external
 
 
 ########################
