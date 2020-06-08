@@ -127,6 +127,124 @@ void GeneratePatches(const InRange& pointCloud, TrRange& transformations,
 
 }
 
+void printVector(double* ele, int dim, char* printFormat,
+         FILE* fpout);
+void printMatrix(double* ele, int dim, char* printFormat,
+         FILE* fpout);
+void printDimacsError(double dimacs_error[7],char* printFormat,
+              FILE* fpout);
+
+
+void SolveSDP(Eigen::Ref<const MatrixX> C, Eigen::Ref<MatrixX> G){
+  SDPA	Problem;
+
+  // All parameteres are renewed
+  Problem.setParameterType(SDPA::PARAMETER_DEFAULT);
+
+  Problem.printParameters(stdout);
+
+  int mDIM   = d*(d+1)/2*m;
+  int nBlock = 1;
+  Problem.inputConstraintNumber(mDIM);
+  Problem.inputBlockNumber(nBlock);
+  Problem.inputBlockSize(1,d*m);
+  Problem.inputBlockType(1,SDPA::SDP);
+
+  Problem.initializeUpperTriangleSpace();
+
+
+  // c vec
+  int cnt = 1;
+  for(int i = 0; i < m; i++){
+    for(int j = 0; j < d; j++){
+      Problem.inputCVec(cnt++,1);
+      
+      for(int k = j+1; k < d; k++)
+        Problem.inputCVec(cnt++,0);
+    }
+  }
+
+  // F0 = -C
+  for(int i = 0; i < m*d; i++)
+    for(int j = i; j < m*d; j++)
+      Problem.inputElement(0, 1, i+1, j+1, -C(i,j));
+
+ // Fi
+  cnt = 1;
+  for(int k = 0; k < m; k++){
+    for(int j = 0; j < d; j++){
+      for(int i = j; i < d; i++)
+        Problem.inputElement(cnt++, 1, k*d+i+1, k*d+j+1, 1);
+    }
+  }
+
+  Problem.initializeUpperTriangle();
+  Problem.initializeSolve();
+
+  // if necessary, dump input data and initial point
+  // Problem1.writeInputSparse((char*)"tmp.dat-s",(char*)"%+8.3e");
+  // Problem1.writeInitSparse((char*)"tmp.ini-s",(char*)"%+8.3e");
+
+  Problem.solve();
+
+  fprintf(stdout, "\nStop iteration = %d\n",
+      Problem.getIteration());
+  char phase_string[30];
+  Problem.getPhaseString(phase_string);
+  fprintf(stdout, "Phase          = %s\n", phase_string);
+  fprintf(stdout, "objValPrimal   = %+10.6e\n",
+      Problem.getPrimalObj());
+  fprintf(stdout, "objValDual     = %+10.6e\n",
+      Problem.getDualObj());
+  fprintf(stdout, "p. feas. error = %+10.6e\n",
+      Problem.getPrimalError());
+  fprintf(stdout, "d. feas. error = %+10.6e\n\n",
+      Problem.getDualError());
+
+
+  fprintf(stdout, "xVec = \n");
+  // Problem1.printResultXVec();
+  printVector(Problem.getResultXVec(),
+          Problem.getConstraintNumber(), (char*)"%+8.3e",
+          stdout);
+
+  fprintf(stdout, "xMat = \n");
+  // Problem1.printResultXMat();
+  for (int l=0; l<Problem.getBlockNumber(); ++l) {
+    if (Problem.getBlockType(l+1) == SDPA::SDP) {
+      printMatrix(Problem.getResultXMat(l+1),
+          Problem.getBlockSize(l+1), (char*)"%+8.3e",
+          stdout);
+    }
+    else if (Problem.getBlockType(l+1) == SDPA::SOCP) {
+      printf("current version does not support SOCP\n");
+    }
+    if (Problem.getBlockType(l+1) == SDPA::LP) {
+      printVector(Problem.getResultXMat(l+1),
+          Problem.getBlockSize(l+1), (char*)"%+8.3e",
+          stdout);
+    }
+  }
+
+  fprintf(stdout, "yMat = \n");
+  // Problem1.printResultYMat();
+  for (int l=0; l<Problem.getBlockNumber(); ++l) {
+    if (Problem.getBlockType(l+1) == SDPA::SDP) {
+      printMatrix(Problem.getResultYMat(l+1),
+          Problem.getBlockSize(l+1), (char*)"%+8.3e",
+          stdout);
+    }
+    else if (Problem.getBlockType(l+1) == SDPA::SOCP) {
+      printf("current version does not support SOCP\n");
+    }
+    if (Problem.getBlockType(l+1) == SDPA::LP) {
+      printVector(Problem.getResultYMat(l+1),
+          Problem.getBlockSize(l+1), (char*)"%+8.3e",
+          stdout);
+    }
+  }
+}
+
 
 int main ()
 {
@@ -150,8 +268,64 @@ int main ()
   // compute C
   C = D - B * Linv * B.transpose();
 
-  
+  // TODO: solve the SDP (P2) using C
+  Eigen::Matrix<Scalar, m*d, m*d> G;
+
+  SolveSDP(C, G);
+
 }
 
 
 
+
+void printVector(double* ele, int dim, char* printFormat, FILE* fpout)
+{
+  fprintf(fpout,"[ ");
+  for (int k=0; k<dim-1; ++k) {
+    fprintf(fpout,printFormat,ele[k]);
+    fprintf(fpout," ");
+  }
+  fprintf(fpout,printFormat,ele[dim-1]);
+  fprintf(fpout,"]; \n");
+}
+
+void printMatrix(double* ele, int dim, char* printFormat, FILE* fpout)
+{
+  fprintf(fpout,"[\n");
+  for (int i=0; i<dim; ++i) {
+    fprintf(fpout,"[ ");
+    for (int j=0; j<dim-1; ++j) {
+      fprintf(fpout,printFormat,ele[i+dim*j]);
+      fprintf(fpout," ");
+    }
+    fprintf(fpout,printFormat,ele[i+dim*(dim-1)]);
+    fprintf(fpout,"]; \n");
+  }
+  fprintf(fpout,"]; \n");
+}
+
+void printDimacsError(double dimacs_error[7],char* printFormat,
+              FILE* fpout)
+{
+  fprintf(fpout,  "\n");
+  fprintf(fpout,  "* DIMACS_ERRORS * \n");
+  fprintf(fpout,  "err1 = ");
+  fprintf(fpout,  printFormat, dimacs_error[1]);
+  fprintf(fpout, "  [||Ax-b|| / (1+||b||_1)]\n");
+  fprintf(fpout,  "err2 = ");
+  fprintf(fpout,  printFormat, dimacs_error[2]);
+  fprintf(fpout, "  [max(0, -lambda(x)/(1+||b||_1))]\n");
+  fprintf(fpout,  "err3 = ");
+  fprintf(fpout,  printFormat, dimacs_error[3]);
+  fprintf(fpout, "  [||A^Ty + z - c || / (1+||c||_1)]\n");
+  fprintf(fpout,  "err4 = ");
+  fprintf(fpout,  printFormat, dimacs_error[4]);
+  fprintf(fpout, "  [max(0, -lambda(z)/(1+||c||_1))]\n");
+  fprintf(fpout,  "err5 = ");
+  fprintf(fpout,  printFormat, dimacs_error[5]);
+  fprintf(fpout, "  [(<c,x> - <b,y>) / (1 + |<c,x>| + |<b,y>|)]\n");
+  fprintf(fpout,  "err6 = ");
+  fprintf(fpout,  printFormat, dimacs_error[6]);
+  fprintf(fpout, "  [<x,z> / (1 + |<c,x>| + |<b,y>|)]\n");
+  fprintf(fpout,  "\n");
+}
