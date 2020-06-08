@@ -6,9 +6,10 @@
 #include <sdpa_call.h>
 #include "shared.h"
 
-static const int n = 1000;
+static const int n = 10;
 static const int d = 3;
 static const int m = 5;
+static const float samp = 0.7; // sample probability
 using Scalar = gr::Point3D<float>::Scalar;
 using MatrixType = Eigen::Matrix<Scalar, d+1, d+1>;
 using VectorType = Eigen::Matrix<Scalar, d, 1>;
@@ -78,9 +79,52 @@ void GenerateTrafos(TrRange& transformations){
 template <typename InRange, typename TrRange>
 void GeneratePatches(const InRange& pointCloud, TrRange& transformations,
                       Eigen::Ref<MatrixX> L, Eigen::Ref<MatrixX> B, Eigen::Ref<MatrixX> D){
+
+  L = Eigen::MatrixXf::Zero(n+m,n+m);
+  B = Eigen::MatrixXf::Zero(m*d, n+m);
+  D = Eigen::MatrixXf::Zero(m*d, m*d);
+
+
   GenerateTrafos(transformations);
-  for(int i = 0; i < m; i++){
+  VectorType v_ki;
+
+
+  // for every global point k
+  for(int k = 0; k < n; k++){
+    // for every patch i
+    for(int i = 0; i < m; i++){
+      if(((float) rand() / (RAND_MAX)) < samp){
+        v_ki = transformations.at(i).block(0,0,d,d) * pointCloud.at(k).pos() + transformations.at(i).block(0,d,d,1);
+
+        L(k,k)++;
+        L(k,n+i)--;
+        L(n+i,k)--;
+        L(n+i,n+i)++;
+
+        B.block(i*d,k,d,1) += v_ki;
+        B.block(i*d,n+i,d,1) -= v_ki;
+
+        D.block(i*d, i*d, d, d) += v_ki*v_ki.transpose();
+      }
+    }
+
+    // ensure that every point is in one patch
+    if(L(k,k) == 0){
+      int i = rand() % m;
+      v_ki = transformations.at(i).block(0,0,d,d) * pointCloud.at(k).pos() + transformations.at(i).block(0,d,d,1);
+
+      L(k,k)++;
+      L(k,n+i)--;
+      L(n+i,k)--;
+      L(n+i,n+i)++;
+
+      B.block(i*d,k,d,1) += v_ki;
+      B.block(i*d,n+i,d,1) -= v_ki;
+
+      D.block(i*d, i*d, d, d) += v_ki*v_ki.transpose();
+    } 
   }
+
 }
 
 
@@ -99,7 +143,14 @@ int main ()
   MatrixX Linv(n+m, n+m);
   MatrixX C(m*d, m*d);
   GeneratePatches(spiral, originalTransformations, L, B, D);
+  
+  // compute Linv, the Moore-Penrose pseudoinverse of L
+  Linv = L.completeOrthogonalDecomposition().pseudoInverse();
 
+  // compute C
+  C = D - B * Linv * B.transpose();
+
+  
 }
 
 
