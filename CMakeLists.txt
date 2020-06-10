@@ -10,14 +10,5 @@ include_directories( ${EIGEN3_INCLUDE_DIR} )
 
 include_directories(${SDPA_INCLUDE_DIRS})
 
-add_executable(example1 examples/example1.cpp)
-target_link_libraries(example1 ${SDPA_LIBRARIES})
-
-add_executable(example5 examples/example5.cpp)
-target_link_libraries(example5 ${SDPA_LIBRARIES})
-
-add_executable(sdpa_exe examples/sdpa_exe.cpp)
-target_link_libraries(sdpa_exe ${SDPA_LIBRARIES})
-
 add_executable(gret-sdp-demo gret-sdp-demo.cpp)
 target_link_libraries(gret-sdp-demo ${SDPA_LIBRARIES} Eigen3::Eigen)
