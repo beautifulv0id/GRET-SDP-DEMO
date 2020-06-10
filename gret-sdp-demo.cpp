@@ -272,7 +272,7 @@ void ComputeRelativeTrafos(const TrRange& transformations, TrRange& relTransform
 }
 
 void writeMatrix(Eigen::Ref<Eigen::MatrixXd> m, std::string filename){
-  std::ofstream file("/home/felix/MATLAB/Projects/SDP/" + filename);
+  std::ofstream file(filename);
   if(file.is_open()){
     file << m << '\n';
   }
@@ -313,18 +313,10 @@ int main ()
   // compute C
   C = D - B * Linv * B.transpose();
 
-  writeMatrix(L, "LMat.dat");
-  writeMatrix(B, "BMat.dat");
-  writeMatrix(Linv, "LinvMat.dat");
-  writeMatrix(D, "DMat.dat");
-  writeMatrix(C, "CMat.dat");
-
   // solve the SDP (P2) using C
   Eigen::Matrix<Scalar, m*d, m*d> G;
 
   SolveSDP(C, G);
-
-  writeMatrix(G, "GMat.dat");
 
   // compute top d eigenvalues and eigenvectors
   Eigen::EigenSolver<Eigen::Matrix<Scalar, m*d, m*d>> s(G);
@@ -370,9 +362,15 @@ int main ()
   Eigen::Matrix<Scalar, d, n+m> Z;
   Z = O*B*Linv;
 
-  writeMatrix(Z, "ZMat.dat");
-  writeMatrix(W, "WMat.dat");
-  writeMatrix(O, "OMat.dat");
+  // writeMatrix(L, "LMat.dat");
+  // writeMatrix(B, "BMat.dat");
+  // writeMatrix(Linv, "LinvMat.dat");
+  // writeMatrix(D, "DMat.dat");
+  // writeMatrix(C, "CMat.dat");
+  // writeMatrix(G, "GMat.dat");
+  // writeMatrix(Z, "ZMat.dat");
+  // writeMatrix(W, "WMat.dat");
+  // writeMatrix(O, "OMat.dat");
 
   // compute trafos
   std::vector<MatrixType> transformations;
