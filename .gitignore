@@ -1,5 +1,4 @@
 build/*
 examples/*
 external/*
-shared.h
 .vscode/*
