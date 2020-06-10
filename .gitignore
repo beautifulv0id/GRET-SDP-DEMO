@@ -1,1 +1,4 @@
-./build/
+build/*
+examples/*
+external/*
+shared.h
