@@ -6,7 +6,7 @@
 #include <sdpa_call.h>
 #include "shared.h"
 
-static const int n = 1000;
+static const int n = 100;
 static const int d = 3;
 static const int m = 5;
 static const double samp = 0.7; // sample probability
@@ -23,7 +23,7 @@ void CreateSpiral(InRange& in, const size_t n){
   using VectorType_ = typename InRange::value_type::VectorType;
   using PointType_ = typename InRange::value_type;
 
-  Scalar_ step = 4.0*M_PI/ (double) n;
+  Scalar_ step = 4.0*M_PI/ (float) n;
   VectorType_ tmp(0,0,0); // x, y, z
   for(int i = 0; i<n; ++i){
     in.push_back(PointType_(tmp));
@@ -94,7 +94,8 @@ void GeneratePatches(const InRange& pointCloud, TrRange& transformations,
     // for every patch i
     for(int i = 0; i < m; i++){
       if(((double) rand() / (RAND_MAX)) < samp){
-        v_ki = transformations.at(i).block(0,0,d,d) * pointCloud.at(k).pos() + transformations.at(i).block(0,d,d,1);
+        //v_ki = transformations.at(i).block(0,0,d,d) * pointCloud.at(k).pos() + transformations.at(i).block(0,d,d,1);
+        v_ki = transformations.at(i).block(0,0,d,d).inverse() * (pointCloud.at(k).pos() -  transformations.at(i).block(0,d,d,1));
 
         L(k,k)++;
         L(k,n+i)--;
@@ -111,8 +112,9 @@ void GeneratePatches(const InRange& pointCloud, TrRange& transformations,
     // ensure that every point is in one patch
     if(L(k,k) == 0){
       int i = rand() % m;
-      v_ki = transformations.at(i).block(0,0,d,d) * pointCloud.at(k).pos() + transformations.at(i).block(0,d,d,1);
-
+      //v_ki = transformations.at(i).block(0,0,d,d) * pointCloud.at(k).pos() + transformations.at(i).block(0,d,d,1);
+      v_ki = transformations.at(i).block(0,0,d,d).inverse() * (pointCloud.at(k).pos() -  transformations.at(i).block(0,d,d,1));
+      
       L(k,k)++;
       L(k,n+i)--;
       L(n+i,k)--;
@@ -254,20 +256,45 @@ void ComputeRelativeTrafos(const TrRange& transformations, TrRange& relTransform
   relTransformations.reserve(m-1);
   MatrixType Tr;
   Eigen::MatrixXd O1(transformations.at(0).block(0, 0, d, d));
-  if(!inv)
-    O1 = O1.inverse();
   Eigen::VectorXd t1(transformations.at(0).block(0, d, d, 1));
   Eigen::MatrixXd O(d,d);
   Eigen::VectorXd t(d);
+
+
+  if(!inv){
+    O1 = O1.inverse();
+    for(int i = 1; i < m; i++){
+      Tr = transformations.at(i);
+      O = Tr.block(0, 0, d, d);
+      t = Tr.block(0, d, d, 1);
+      Tr.block(0, 0, d, d) = O1*O;
+      Tr.block(0, d, d, 1) = O1*(t-t1);
+      relTransformations.push_back(Tr);
+    }
+  } else {
+    for(int i = 1; i < m; i++){
+      Tr = transformations.at(i);
+      O = Tr.block(0, 0, d, d);
+      O = O.inverse();
+      t = Tr.block(0, d, d, 1);
+      Tr.block(0, 0, d, d) = O1*O;
+      Tr.block(0, d, d, 1) = -O1*t+t1;
+      relTransformations.push_back(Tr);
+    } 
+  }
 
   for(int i = 1; i < m; i++){
     Tr = transformations.at(i);
     O = Tr.block(0, 0, d, d);
     if(inv) O = O.inverse();
     t = Tr.block(0, d, d, 1);
-    Tr.block(0, 0, d, d) = O * O1;
-    Tr.block(0, d, d, 1) = (t-t1)*O1;
+    Tr.block(0, 0, d, d) = O1*O;
+    if(!inv)
+      Tr.block(0, d, d, 1) = O1*(t-t1);
+    else
+      Tr.block(0, d, d, 1) = -O1*t+t1;
     relTransformations.push_back(Tr);
+
   }
 }
 
@@ -388,7 +415,7 @@ int main ()
   ComputeRelativeTrafos(transformations, relTransformations);
 
   std::vector<MatrixType> origRelTransformations;
-  ComputeRelativeTrafos(originalTransformations, origRelTransformations, true);
+  ComputeRelativeTrafos(originalTransformations, origRelTransformations);
 
   for(int i = 0; i < m-1; i++){
     std::cout << "Tr*[" << i << "] " << endl << relTransformations.at(i) << endl;
