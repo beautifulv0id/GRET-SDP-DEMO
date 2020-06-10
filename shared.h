@@ -44,8 +44,6 @@
 #ifndef _SHARED_4PCS_H_
 #define _SHARED_4PCS_H_
 
-#include "gr/utils/disablewarnings.h"
-
 #include <Eigen/Core>
 
 #include <vector>
