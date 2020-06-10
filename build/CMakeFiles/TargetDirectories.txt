@@ -1,6 +1,0 @@
-/home/felix/Workspace/GSoC20/SDP_Solver/SDPA/build/CMakeFiles/rebuild_cache.dir
-/home/felix/Workspace/GSoC20/SDP_Solver/SDPA/build/CMakeFiles/edit_cache.dir
-/home/felix/Workspace/GSoC20/SDP_Solver/SDPA/build/CMakeFiles/gret-sdp-demo.dir
-/home/felix/Workspace/GSoC20/SDP_Solver/SDPA/build/CMakeFiles/sdpa_exe.dir
-/home/felix/Workspace/GSoC20/SDP_Solver/SDPA/build/CMakeFiles/example5.dir
-/home/felix/Workspace/GSoC20/SDP_Solver/SDPA/build/CMakeFiles/example1.dir
