@@ -4,13 +4,16 @@
 #include <vector>
 #include <Eigen/Dense>
 #include <sdpa_call.h>
-#include "shared.h"
+#include <gr/accelerators/kdtree.h>
+#include <gr/shared.h>
+#include <atomic>
 
 static int n = 500;
 static const int d = 3;
 static const int m = 5;
 static const double samp = 0.7; // sample probability
-using Scalar = gr::Point3D<double>::Scalar;
+using PointType = gr::Point3D<double>;
+using Scalar = PointType::Scalar;
 using MatrixType = Eigen::Matrix<Scalar, d+1, d+1>;
 using VectorType = Eigen::Matrix<Scalar, d, 1>;
 using RigidTransformation = std::tuple<MatrixType, VectorType>;
@@ -76,8 +79,8 @@ void GenerateTrafos(TrRange& transformations){
   }
 }
 
-template <typename InRange, typename TrRange>
-void GeneratePatches(const InRange& pointCloud, TrRange& transformations,
+template <typename InRange, typename PatchRange, typename TrRange>
+void GeneratePatches(const InRange& pointCloud, PatchRange& patches, TrRange& transformations, 
                       Eigen::Ref<MatrixX> L, Eigen::Ref<MatrixX> B, Eigen::Ref<MatrixX> D){
 
   L = Eigen::MatrixXd::Zero(n+m,n+m);
@@ -94,8 +97,9 @@ void GeneratePatches(const InRange& pointCloud, TrRange& transformations,
     // for every patch i
     for(int i = 0; i < m; i++){
       if(((double) rand() / (RAND_MAX)) < samp){
-        //v_ki = transformations.at(i).block(0,0,d,d) * pointCloud.at(k).pos() + transformations.at(i).block(0,d,d,1);
         v_ki = transformations.at(i).block(0,0,d,d).inverse() * (pointCloud.at(k).pos() -  transformations.at(i).block(0,d,d,1));
+
+        patches[i].push_back(PointType(v_ki));
 
         L(k,k)++;
         L(k,n+i)--;
@@ -283,19 +287,6 @@ void ComputeRelativeTrafos(const TrRange& transformations, TrRange& relTransform
     } 
   }
 
-  for(int i = 1; i < m; i++){
-    Tr = transformations.at(i);
-    O = Tr.block(0, 0, d, d);
-    if(inv) O = O.inverse();
-    t = Tr.block(0, d, d, 1);
-    Tr.block(0, 0, d, d) = O1*O;
-    if(!inv)
-      Tr.block(0, d, d, 1) = O1*(t-t1);
-    else
-      Tr.block(0, d, d, 1) = -O1*t+t1;
-    relTransformations.push_back(Tr);
-
-  }
 }
 
 void writeMatrix(Eigen::Ref<Eigen::MatrixXd> m, std::string filename){
@@ -317,11 +308,70 @@ void writePoints(const PointRange& vec, std::string filename){
   file.close();
 }
 
+template <typename PointRange>
+Scalar compute_lcp( const gr::KdTree<Scalar>& P, const PointRange& Q){
+  using RangeQuery = typename gr::KdTree<Scalar>::template RangeQuery<>;
+  const Scalar epsilon = 0.01;
+  std::atomic_uint good_points(0);
+  const size_t number_of_points = Q.size();
+  Scalar best_LCP_ = 0;
+  const size_t terminate_value = best_LCP_ * number_of_points;
+  const Scalar sq_eps = epsilon*epsilon;
+
+  for (size_t i = 0; i < number_of_points; ++i) {
+    RangeQuery query;
+    query.queryPoint = Q[i].pos();
+    query.sqdist     = sq_eps;
+
+    auto result = P.doQueryRestrictedClosestIndex( query );
+
+    if ( result.first != gr::KdTree<Scalar>::invalidIndex() ) {
+        good_points++;
+    }
+
+    // We can terminate if there is no longer chance to get better than the
+    // current best LCP.
+    if (number_of_points - i + good_points < terminate_value) {
+        break;
+    }
+  }
+  return Scalar(good_points) / Scalar(number_of_points);
+}
+
+template <typename PointRange>
+gr::KdTree<Scalar> constructKdTree(const PointRange& Q){
+  size_t number_of_points = Q.size();
+  // Build the kdtree.
+  gr::KdTree<Scalar> kd_tree(number_of_points);
+
+  for (size_t i = 0; i < number_of_points; ++i) {
+      kd_tree.add(Q[i].pos());
+  }
+  kd_tree.finalize();
+  return kd_tree;
+}
+
+
+// transforms all patches to a common frame using the relTrafos and stores them in P
+template <typename CommonPointRange, typename PatchRange, typename TrRange>
+void transformToCommonFrame(CommonPointRange& P, const PatchRange& patches, const TrRange& relTrafos){
+  MatrixType mat;
+  VectorType vec;
+  for( int i = 1; i < patches.size(); i++){
+    int patch_size = patches[i].size();
+    mat = relTrafos[i-1];
+    for(int j = 0; j < patch_size; j++){
+      vec = (mat * patches[i][j].pos().homogeneous()).template head<3>();
+      P.push_back(PointType(vec));
+    }
+  }
+}
+
+
 int main (int argc, char** argv)
 {
   if(argc > 1)
     n = atoi(argv[1]);
-
 
   vector<gr::Point3D<Scalar>> spiral;
   spiral.reserve(n);
@@ -329,13 +379,14 @@ int main (int argc, char** argv)
   //writePoints(spiral, "spiral.dat");
 
   vector<MatrixType> originalTransformations;
-  originalTransformations.reserve(m);
+  vector<vector<PointType>> patches(m, vector<PointType>());
+  //patches.reserve(m);
   MatrixX L(n+m, n+m);
   MatrixX B(m*d, n+m);
   MatrixX D(m*d, m*d);
   MatrixX Linv(n+m, n+m);
   MatrixX C(m*d, m*d);
-  GeneratePatches(spiral, originalTransformations, L, B, D);
+  GeneratePatches(spiral, patches, originalTransformations, L, B, D);
   
   // compute Linv, the Moore-Penrose pseudoinverse of L
   Linv = L.completeOrthogonalDecomposition().pseudoInverse();
@@ -414,19 +465,32 @@ int main (int argc, char** argv)
     transformations.push_back(trafo);
   }
 
-  // compute relative trafos
-  std::vector<MatrixType> relTransformations;
-  ComputeRelativeTrafos(transformations, relTransformations);
+  // compute relative trafos to frame 0
+  std::vector<MatrixType> registeredRelTransformations;
+  ComputeRelativeTrafos(transformations, registeredRelTransformations);
 
   std::vector<MatrixType> origRelTransformations;
   ComputeRelativeTrafos(originalTransformations, origRelTransformations);
 
-  // for(int i = 0; i < m-1; i++){
-  //   std::cout << "Tr*[" << i << "] " << endl << relTransformations.at(i) << endl;
-  //   std::cout << "Tr**[" << i << "] " << endl << origRelTransformations.at(i) << endl;
-  // }
+  for(int i = 0; i < m-1; i++){
+    std::cout << "Tr_registered[" << i << "] " << std::endl << registeredRelTransformations.at(i) << std::endl;
+    std::cout << "Tr_original[" << i << "] " << std::endl << origRelTransformations.at(i) << std::endl << std::endl;
+  }
 
-  
+  // TODO: transform point clouds to frame 0
+  vector<PointType> original_pc; 
+  vector<PointType> registered_pc;
+
+  transformToCommonFrame(original_pc, patches, origRelTransformations);
+  transformToCommonFrame(registered_pc, patches, registeredRelTransformations);
+
+  // TODO: construct kd_tree
+  gr::KdTree<Scalar> kd_tree(constructKdTree(original_pc));
+
+  // compute lcp
+  Scalar lcp = compute_lcp(kd_tree, registered_pc);
+
+  std::cout << "lcp = " << lcp << std::endl;
 }
 
 
