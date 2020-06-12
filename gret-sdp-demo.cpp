@@ -6,7 +6,7 @@
 #include <sdpa_call.h>
 #include "shared.h"
 
-static const int n = 100;
+static int n = 500;
 static const int d = 3;
 static const int m = 5;
 static const double samp = 0.7; // sample probability
@@ -317,13 +317,16 @@ void writePoints(const PointRange& vec, std::string filename){
   file.close();
 }
 
-int main ()
+int main (int argc, char** argv)
 {
-  
+  if(argc > 1)
+    n = atoi(argv[1]);
+
+
   vector<gr::Point3D<Scalar>> spiral;
   spiral.reserve(n);
   CreateSpiral(spiral, n);
-  writePoints(spiral, "spiral.dat");
+  //writePoints(spiral, "spiral.dat");
 
   vector<MatrixType> originalTransformations;
   originalTransformations.reserve(m);
@@ -386,7 +389,7 @@ int main ()
   }
 
   // compute Z
-  Eigen::Matrix<Scalar, d, n+m> Z;
+  MatrixX Z(d, n+m);
   Z = O*B*Linv;
 
   // writeMatrix(L, "LMat.dat");
@@ -411,16 +414,19 @@ int main ()
     transformations.push_back(trafo);
   }
 
+  // compute relative trafos
   std::vector<MatrixType> relTransformations;
   ComputeRelativeTrafos(transformations, relTransformations);
 
   std::vector<MatrixType> origRelTransformations;
   ComputeRelativeTrafos(originalTransformations, origRelTransformations);
 
-  for(int i = 0; i < m-1; i++){
-    std::cout << "Tr*[" << i << "] " << endl << relTransformations.at(i) << endl;
-    std::cout << "Tr**[" << i << "] " << endl << origRelTransformations.at(i) << endl;
-  }
+  // for(int i = 0; i < m-1; i++){
+  //   std::cout << "Tr*[" << i << "] " << endl << relTransformations.at(i) << endl;
+  //   std::cout << "Tr**[" << i << "] " << endl << origRelTransformations.at(i) << endl;
+  // }
+
+  
 }
 
 
