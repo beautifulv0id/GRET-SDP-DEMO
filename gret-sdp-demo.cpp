@@ -66,7 +66,7 @@ MatrixType GenerateTransformationMatrix(){
   Scalar scale = 2;
   for(int i = 0; i < d; i++){
     sign = rand() % 2 == 0? -1 : 1;
-    rm(i,3) = sign * ((double) rand() / (RAND_MAX)) * scale;
+    rm(i,d) = sign * ((double) rand() / (RAND_MAX)) * scale;
   }
   return rm;
 }
@@ -119,6 +119,8 @@ void GeneratePatches(const InRange& pointCloud, PatchRange& patches, TrRange& tr
       //v_ki = transformations.at(i).block(0,0,d,d) * pointCloud.at(k).pos() + transformations.at(i).block(0,d,d,1);
       v_ki = transformations.at(i).block(0,0,d,d).inverse() * (pointCloud.at(k).pos() -  transformations.at(i).block(0,d,d,1));
       
+      patches[i].push_back(PointType(v_ki));
+
       L(k,k)++;
       L(k,n+i)--;
       L(n+i,k)--;
