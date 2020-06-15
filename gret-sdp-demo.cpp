@@ -261,8 +261,8 @@ template <typename TrRange>
 void ComputeRelativeTrafos(const TrRange& transformations, TrRange& relTransformations, bool inv = false){
   relTransformations.reserve(m-1);
   MatrixType Tr;
-  Eigen::MatrixXd O1(transformations.at(0).block(0, 0, d, d));
-  Eigen::VectorXd t1(transformations.at(0).block(0, d, d, 1));
+  Eigen::MatrixXd O1(transformations[0].block(0, 0, d, d));
+  Eigen::VectorXd t1(transformations[0].block(0, d, d, 1));
   Eigen::MatrixXd O(d,d);
   Eigen::VectorXd t(d);
 
@@ -270,11 +270,12 @@ void ComputeRelativeTrafos(const TrRange& transformations, TrRange& relTransform
   if(!inv){
     O1 = O1.transpose();
     for(int i = 1; i < m; i++){
-      Tr = transformations.at(i);
-      O = Tr.block(0, 0, d, d);
-      t = Tr.block(0, d, d, 1);
+      Tr = MatrixType::Zero();
+      O = transformations[i].block(0, 0, d, d);
+      t = transformations[i].block(0, d, d, 1);
       Tr.block(0, 0, d, d) = O1*O;
       Tr.block(0, d, d, 1) = O1*(t-t1);
+      Tr(d,d) = 1;
       relTransformations.push_back(Tr);
     }
   } else {
@@ -343,6 +344,7 @@ Scalar compute_lcp( const gr::KdTree<Scalar>& P, const PointRange& Q){
   }
   return Scalar(good_points) / Scalar(number_of_points);
 }
+
 
 template <typename PointRange>
 gr::KdTree<Scalar> constructKdTree(const PointRange& Q){
@@ -466,6 +468,7 @@ int main (int argc, char** argv)
   // compute relative trafos to frame 0
   std::vector<MatrixType> registeredRelTransformations;
   ComputeRelativeTrafos(transformations, registeredRelTransformations);
+  
   std::vector<MatrixType> origRelTransformations;
   ComputeRelativeTrafos(originalTransformations, origRelTransformations);
 
@@ -509,13 +512,35 @@ int main (int argc, char** argv)
   writePoints(original_pc, "OriginalPCMat.dat");
   writePoints(registered_pc, "RegisterdPCMat.dat");
 
-  std::vector<VectorType> transformed_patches;
+  std::vector<VectorType> reg_transformed_patches;
+  std::vector<VectorType> ori_transformed_patches;
   for(int i = 0; i < m; i++){
     for(int j = 0; j < patches[i].size(); j++){
-      transformed_patches.push_back((transformations[i]*patches[i][j].pos().homogeneous()).template head<3>());
+      reg_transformed_patches.push_back((transformations[i]*patches[i][j].pos().homogeneous()).template head<3>());
+      ori_transformed_patches.push_back((originalTransformations[i]*patches[i][j].pos().homogeneous()).template head<3>());
     }
   }
-  writePoints(transformed_patches, "transformed_patches.dat");
+  writePoints(reg_transformed_patches, "reg_transformed_patches.dat");
+  writePoints(ori_transformed_patches, "ori_transformed_patches.dat");
+
+
+  std::vector<VectorType> reg_transformed_patches_frame0;
+  std::vector<VectorType> ori_transformed_patches_frame0;
+  Eigen::Matrix3d reg_O_0(transformations[0].block(0,0,d,d));
+  Eigen::Vector3d reg_t_0(transformations[0].block(0,d,d,1));
+  Eigen::Matrix3d ori_O_0(originalTransformations[0].block(0,0,d,d));
+  Eigen::Vector3d ori_t_0(originalTransformations[0].block(0,d,d,1));
+
+  for(VectorType vec : reg_transformed_patches){
+    reg_transformed_patches_frame0.push_back(reg_O_0.inverse() * (vec - reg_t_0));
+  }
+  for(VectorType vec : ori_transformed_patches){
+    ori_transformed_patches_frame0.push_back(ori_O_0.transpose() * (vec - ori_t_0));
+  }
+
+
+  writePoints(reg_transformed_patches_frame0, "reg_transformed_patches_frame0.dat");
+  writePoints(ori_transformed_patches_frame0, "ori_transformed_patches_frame0.dat");
 }
 
 
