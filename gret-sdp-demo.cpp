@@ -10,7 +10,7 @@
 #include <stdlib.h>     /* srand, rand */
 #include <time.h>       /* time */
 
-static std::string path_prefix  = "/home/felix/MATLAB/Projects/SDP/data/";
+static std::string path_prefix  = "";
 
 static int n = 500;
 static const int d = 3;
@@ -465,82 +465,56 @@ int main (int argc, char** argv)
     transformations.push_back(trafo);
   }
 
-  // compute relative trafos to frame 0
-  std::vector<MatrixType> registeredRelTransformations;
-  ComputeRelativeTrafos(transformations, registeredRelTransformations);
-  
-  std::vector<MatrixType> origRelTransformations;
-  ComputeRelativeTrafos(originalTransformations, origRelTransformations);
-
-  for(int i = 0; i < m-1; i++){
-    std::cout << "Tr_registered[" << i << "] " << std::endl << registeredRelTransformations.at(i) << std::endl;
-    std::cout << "Tr_original[" << i << "] " << std::endl << origRelTransformations.at(i) << std::endl << std::endl;
-  }
-
-  // transform point clouds to frame 0
-  vector<PointType> original_pc; 
-  vector<PointType> registered_pc;
-  transformToCommonFrame(original_pc, patches, origRelTransformations);
-  transformToCommonFrame(registered_pc, patches, registeredRelTransformations);
-
-  // construct kd_tree
-  gr::KdTree<Scalar> kd_tree(constructKdTree(original_pc));
-
-  // compute lcp
-  Scalar lcp = compute_lcp(kd_tree, registered_pc);
-  std::cout << "lcp = " << lcp << std::endl;
-
-
-
-  // export matrices for usage in matlab
-  writePoints(spiral, "SpiralMat.dat");
-  for(int i = 0; i < m; i++){
-    writePoints(patches[i], "patch" + std::to_string(i+1) + ".dat");
-  }
-
-  writeMatrix(L, "LMat.dat");
-  writeMatrix(B, "BMat.dat");
-  writeMatrix(Linv, "LinvMat.dat");
-  writeMatrix(D, "DMat.dat");
-  writeMatrix(C, "CMat.dat");
-  writeMatrix(G, "GMat.dat");
-  writeMatrix(Z, "ZMat.dat");
-  writeMatrix(W, "WMat.dat");
-  writeMatrix(O, "OMat.dat");
-  writePoints(re_eigvecs, "EigVecsMat.dat");
-
-  writePoints(original_pc, "OriginalPCMat.dat");
-  writePoints(registered_pc, "RegisterdPCMat.dat");
-
-  std::vector<VectorType> reg_transformed_patches;
-  std::vector<VectorType> ori_transformed_patches;
+  std::vector<PointType> reg_transformed_patches;
+  std::vector<PointType> ori_transformed_patches;
   for(int i = 0; i < m; i++){
     for(int j = 0; j < patches[i].size(); j++){
-      reg_transformed_patches.push_back((transformations[i]*patches[i][j].pos().homogeneous()).template head<3>());
-      ori_transformed_patches.push_back((originalTransformations[i]*patches[i][j].pos().homogeneous()).template head<3>());
+      reg_transformed_patches.push_back(PointType((VectorType)(transformations[i]*patches[i][j].pos().homogeneous()).template head<3>()));
+      ori_transformed_patches.push_back(PointType((VectorType)(originalTransformations[i]*patches[i][j].pos().homogeneous()).template head<3>()));
     }
   }
-  writePoints(reg_transformed_patches, "reg_transformed_patches.dat");
-  writePoints(ori_transformed_patches, "ori_transformed_patches.dat");
 
-
-  std::vector<VectorType> reg_transformed_patches_frame0;
-  std::vector<VectorType> ori_transformed_patches_frame0;
+  std::vector<PointType> reg_transformed_patches_frame0;
+  std::vector<PointType> ori_transformed_patches_frame0;
   Eigen::Matrix3d reg_O_0(transformations[0].block(0,0,d,d));
   Eigen::Vector3d reg_t_0(transformations[0].block(0,d,d,1));
   Eigen::Matrix3d ori_O_0(originalTransformations[0].block(0,0,d,d));
   Eigen::Vector3d ori_t_0(originalTransformations[0].block(0,d,d,1));
 
-  for(VectorType vec : reg_transformed_patches){
-    reg_transformed_patches_frame0.push_back(reg_O_0.inverse() * (vec - reg_t_0));
+  for(PointType point : reg_transformed_patches){
+    reg_transformed_patches_frame0.push_back(PointType((VectorType) (reg_O_0.inverse() * (point.pos() - reg_t_0))));
   }
-  for(VectorType vec : ori_transformed_patches){
-    ori_transformed_patches_frame0.push_back(ori_O_0.transpose() * (vec - ori_t_0));
+  for(PointType point : ori_transformed_patches){
+    ori_transformed_patches_frame0.push_back(PointType((VectorType) (ori_O_0.transpose() * (point.pos() - ori_t_0))));
   }
 
+  // construct kd_tree
+  gr::KdTree<Scalar> kd_tree(constructKdTree(ori_transformed_patches_frame0));
+  // compute lcp
+  Scalar lcp = compute_lcp(kd_tree, reg_transformed_patches_frame0);
+  std::cout << "lcp = " << lcp << std::endl;
 
-  writePoints(reg_transformed_patches_frame0, "reg_transformed_patches_frame0.dat");
-  writePoints(ori_transformed_patches_frame0, "ori_transformed_patches_frame0.dat");
+
+  // export matrices for usage in matlab
+  // writePoints(spiral, "SpiralMat.dat");
+  // for(int i = 0; i < m; i++){
+  //   writePoints(patches[i], "patch" + std::to_string(i+1) + ".dat");
+  // }
+
+  // writeMatrix(L, "LMat.dat");
+  // writeMatrix(B, "BMat.dat");
+  // writeMatrix(Linv, "LinvMat.dat");
+  // writeMatrix(D, "DMat.dat");
+  // writeMatrix(C, "CMat.dat");
+  // writeMatrix(G, "GMat.dat");
+  // writeMatrix(Z, "ZMat.dat");
+  // writeMatrix(W, "WMat.dat");
+  // writeMatrix(O, "OMat.dat");
+
+  // writePoints(reg_transformed_patches, "reg_transformed_patches.dat");
+  // writePoints(ori_transformed_patches, "ori_transformed_patches.dat");
+  // writePoints(reg_transformed_patches_frame0, "reg_transformed_patches_frame0.dat");
+  // writePoints(ori_transformed_patches_frame0, "ori_transformed_patches_frame0.dat");
 }
 
 
