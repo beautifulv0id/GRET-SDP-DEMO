@@ -5,8 +5,12 @@
 #include <Eigen/Dense>
 #include <sdpa_call.h>
 #include <gr/accelerators/kdtree.h>
-#include <gr/shared.h>
+#include "shared.h"
 #include <atomic>
+#include <stdlib.h>     /* srand, rand */
+#include <time.h>       /* time */
+
+static std::string path_prefix  = "/home/felix/MATLAB/Projects/SDP/data/";
 
 static int n = 500;
 static const int d = 3;
@@ -27,7 +31,7 @@ void CreateSpiral(InRange& in, const size_t n){
   using PointType_ = typename InRange::value_type;
 
   Scalar_ step = 4.0*M_PI/ (float) n;
-  VectorType_ tmp(0,0,0); // x, y, z
+  VectorType_ tmp(0.1,0.1,01.); // x, y, z
   for(int i = 0; i<n; ++i){
     in.push_back(PointType_(tmp));
     tmp(2) += step;
@@ -37,38 +41,34 @@ void CreateSpiral(InRange& in, const size_t n){
 }
 
 MatrixType GenerateTransformationMatrix(){
-  MatrixType rm = MatrixType::Zero();
-  rm(d,d) = 1;
-
   // generate rotation matrix
   VectorX eul(d);
   Scalar sign;
+  Eigen::Matrix3d rm;
   for(int i = 0; i < d; i++){
     sign = rand() % 2 == 0? -1 : 1;
     eul(i) = sign * M_PI * ((double) rand() / (RAND_MAX));
   }
 
-  Scalar a = eul(0);
-  Scalar b = eul(1);
-  Scalar y = eul(2);
+  rm = Eigen::AngleAxisd(eul[0], Eigen::Vector3d::UnitX())
+      * Eigen::AngleAxisd(eul[1], Eigen::Vector3d::UnitY())
+      * Eigen::AngleAxisd(eul[2], Eigen::Vector3d::UnitZ()); 
 
-  rm(0,0) = cos(a)*cos(b);
-  rm(0,1) = cos(a)*sin(b)-sin(a)*cos(y);
-  rm(0,2) = cos(a)*sin(b)*cos(y)+sin(a)*sin(y);
-  rm(1,0) = sin(a)*cos(b);
-  rm(1,1) = sin(a)*sin(b)*sin(y)+cos(a)*cos(y);
-  rm(1,2) = sin(a)*sin(b)*cos(y)-cos(a)*sin(y);
-  rm(2,0) = -sin(b);
-  rm(2,1) = cos(b)*sin(y);
-  rm(2,2) = cos(b)*cos(y);
 
   // generate translation vector
+  VectorX t(d);
   Scalar scale = 2;
   for(int i = 0; i < d; i++){
     sign = rand() % 2 == 0? -1 : 1;
-    rm(i,d) = sign * ((double) rand() / (RAND_MAX)) * scale;
+    t(i) = sign * ((double) rand() / (RAND_MAX)) * scale;
   }
-  return rm;
+
+  MatrixType trafo = MatrixType::Zero();
+  trafo.block(0,0,d,d) = rm;
+  trafo.block(0,d,d,1) = t;
+  trafo(d,d) = 1;
+
+  return trafo;
 }
 
 
@@ -268,7 +268,7 @@ void ComputeRelativeTrafos(const TrRange& transformations, TrRange& relTransform
 
 
   if(!inv){
-    O1 = O1.inverse();
+    O1 = O1.transpose();
     for(int i = 1; i < m; i++){
       Tr = transformations.at(i);
       O = Tr.block(0, 0, d, d);
@@ -281,7 +281,7 @@ void ComputeRelativeTrafos(const TrRange& transformations, TrRange& relTransform
     for(int i = 1; i < m; i++){
       Tr = transformations.at(i);
       O = Tr.block(0, 0, d, d);
-      O = O.inverse();
+      O = O.transpose();
       t = Tr.block(0, d, d, 1);
       Tr.block(0, 0, d, d) = O1*O;
       Tr.block(0, d, d, 1) = -O1*t+t1;
@@ -292,7 +292,7 @@ void ComputeRelativeTrafos(const TrRange& transformations, TrRange& relTransform
 }
 
 void writeMatrix(Eigen::Ref<Eigen::MatrixXd> m, std::string filename){
-  std::ofstream file(filename);
+  std::ofstream file(path_prefix + filename);
   if(file.is_open()){
     file << m << '\n';
   }
@@ -301,14 +301,18 @@ void writeMatrix(Eigen::Ref<Eigen::MatrixXd> m, std::string filename){
 
 template <typename PointRange>
 void writePoints(const PointRange& vec, std::string filename){
-  std::ofstream file(filename);
-  if(file.is_open()){
-    for(auto& p : vec){
-      file << p.pos().transpose() << std::endl;
+  std::ofstream file(path_prefix + filename);
+
+  for(int i = 0; i < d; i++){
+   for(int j = 0; j < vec.size()-1; j++){
+      file << vec[j][i] << " ";
     }
+    file << vec[vec.size()-1][i] << std::endl;
   }
+
   file.close();
 }
+
 
 template <typename PointRange>
 Scalar compute_lcp( const gr::KdTree<Scalar>& P, const PointRange& Q){
@@ -354,11 +358,13 @@ gr::KdTree<Scalar> constructKdTree(const PointRange& Q){
 }
 
 
-// transforms all patches to a common frame using the relTrafos and stores them in P
+// transforms all patches to frame 0 using the relTrafos and stores them in P (in)
 template <typename CommonPointRange, typename PatchRange, typename TrRange>
 void transformToCommonFrame(CommonPointRange& P, const PatchRange& patches, const TrRange& relTrafos){
   MatrixType mat;
   VectorType vec;
+  P = patches[0];
+  // transform and add remaining patches
   for( int i = 1; i < patches.size(); i++){
     int patch_size = patches[i].size();
     mat = relTrafos[i-1];
@@ -375,14 +381,15 @@ int main (int argc, char** argv)
   if(argc > 1)
     n = atoi(argv[1]);
 
+  srand(time(NULL));
+
   vector<gr::Point3D<Scalar>> spiral;
   spiral.reserve(n);
   CreateSpiral(spiral, n);
   //writePoints(spiral, "spiral.dat");
 
   vector<MatrixType> originalTransformations;
-  vector<vector<PointType>> patches(m, vector<PointType>());
-  //patches.reserve(m);
+  vector<vector<PointType>> patches(m);
   MatrixX L(n+m, n+m);
   MatrixX B(m*d, n+m);
   MatrixX D(m*d, m*d);
@@ -407,7 +414,7 @@ int main (int argc, char** argv)
   Eigen::MatrixXcd eigvecs = s.eigenvectors();
   std::vector<double> re_eigvals;
   std::vector<Eigen::VectorXd> re_eigvecs;
- 
+
   for(int i = 0; i < eigvals.rows(); i++) {
       if(eigvals(i).imag() == 0){
           re_eigvals.push_back(eigvals(i).real());
@@ -426,11 +433,10 @@ int main (int argc, char** argv)
     }
   );
 
-
   // construct W
   Eigen::Matrix<Scalar, d, m*d> W;
   for(int i = 0; i < d; i++){
-      W.row(i) = sqrt(eig_pairs[i].first) * eig_pairs[i].second.transpose();
+      W.row(i) = std::sqrt(eig_pairs[i].first) * eig_pairs[i].second.transpose();
   }
 
   // compute transformations O
@@ -444,16 +450,6 @@ int main (int argc, char** argv)
   // compute Z
   MatrixX Z(d, n+m);
   Z = O*B*Linv;
-
-  // writeMatrix(L, "LMat.dat");
-  // writeMatrix(B, "BMat.dat");
-  // writeMatrix(Linv, "LinvMat.dat");
-  // writeMatrix(D, "DMat.dat");
-  // writeMatrix(C, "CMat.dat");
-  // writeMatrix(G, "GMat.dat");
-  // writeMatrix(Z, "ZMat.dat");
-  // writeMatrix(W, "WMat.dat");
-  // writeMatrix(O, "OMat.dat");
 
   // compute trafos
   std::vector<MatrixType> transformations;
@@ -470,7 +466,6 @@ int main (int argc, char** argv)
   // compute relative trafos to frame 0
   std::vector<MatrixType> registeredRelTransformations;
   ComputeRelativeTrafos(transformations, registeredRelTransformations);
-
   std::vector<MatrixType> origRelTransformations;
   ComputeRelativeTrafos(originalTransformations, origRelTransformations);
 
@@ -479,20 +474,48 @@ int main (int argc, char** argv)
     std::cout << "Tr_original[" << i << "] " << std::endl << origRelTransformations.at(i) << std::endl << std::endl;
   }
 
-  // TODO: transform point clouds to frame 0
+  // transform point clouds to frame 0
   vector<PointType> original_pc; 
   vector<PointType> registered_pc;
-
   transformToCommonFrame(original_pc, patches, origRelTransformations);
   transformToCommonFrame(registered_pc, patches, registeredRelTransformations);
 
-  // TODO: construct kd_tree
+  // construct kd_tree
   gr::KdTree<Scalar> kd_tree(constructKdTree(original_pc));
 
   // compute lcp
   Scalar lcp = compute_lcp(kd_tree, registered_pc);
-
   std::cout << "lcp = " << lcp << std::endl;
+
+
+
+  // export matrices for usage in matlab
+  writePoints(spiral, "SpiralMat.dat");
+  for(int i = 0; i < m; i++){
+    writePoints(patches[i], "patch" + std::to_string(i+1) + ".dat");
+  }
+
+  writeMatrix(L, "LMat.dat");
+  writeMatrix(B, "BMat.dat");
+  writeMatrix(Linv, "LinvMat.dat");
+  writeMatrix(D, "DMat.dat");
+  writeMatrix(C, "CMat.dat");
+  writeMatrix(G, "GMat.dat");
+  writeMatrix(Z, "ZMat.dat");
+  writeMatrix(W, "WMat.dat");
+  writeMatrix(O, "OMat.dat");
+  writePoints(re_eigvecs, "EigVecsMat.dat");
+
+  writePoints(original_pc, "OriginalPCMat.dat");
+  writePoints(registered_pc, "RegisterdPCMat.dat");
+
+  std::vector<VectorType> transformed_patches;
+  for(int i = 0; i < m; i++){
+    for(int j = 0; j < patches[i].size(); j++){
+      transformed_patches.push_back((transformations[i]*patches[i][j].pos().homogeneous()).template head<3>());
+    }
+  }
+  writePoints(transformed_patches, "transformed_patches.dat");
 }
 
 

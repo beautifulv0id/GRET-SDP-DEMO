@@ -104,6 +104,8 @@ class Point3D
   inline const VectorType& pos() const { return pos_ ; }
   inline const VectorType& rgb() const { return rgb_; }
 
+  inline const Scalar operator[](int i) const { return pos_[i]; } 
+
   inline const VectorType& normal() const { return normal_; }
   inline void set_rgb(const VectorType& rgb) {
       rgb_ = rgb;
