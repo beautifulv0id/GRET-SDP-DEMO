@@ -12,7 +12,7 @@
 
 static std::string path_prefix  = "";
 
-static int n = 500;
+static int n = 1000;
 static const int d = 3;
 static const int m = 5;
 static const double samp = 0.7; // sample probability
