@@ -390,14 +390,14 @@ int main (int argc, char** argv)
   CreateSpiral(spiral, n);
   //writePoints(spiral, "spiral.dat");
 
-  vector<MatrixType> originalTransformations;
+  vector<MatrixType> original_transformations;
   vector<vector<PointType>> patches(m);
   MatrixX L(n+m, n+m);
   MatrixX B(m*d, n+m);
   MatrixX D(m*d, m*d);
   MatrixX Linv(n+m, n+m);
   MatrixX C(m*d, m*d);
-  GeneratePatches(spiral, patches, originalTransformations, L, B, D);
+  GeneratePatches(spiral, patches, original_transformations, L, B, D);
   
   // compute Linv, the Moore-Penrose pseudoinverse of L
   Linv = L.completeOrthogonalDecomposition().pseudoInverse();
@@ -427,7 +427,7 @@ int main (int argc, char** argv)
   std::vector<std::pair<double, Eigen::VectorXd>> eig_pairs;
   eig_pairs.reserve(d);
   std::transform(re_eigvals.begin(), re_eigvals.end(), re_eigvecs.begin(), std::back_inserter(eig_pairs),
-               [](double a, Eigen::VectorXd b) { return std::make_pair(a, b); });
+               [](double a, const Eigen::VectorXd& b) { return std::make_pair(a, b); });
 
   sort(eig_pairs.begin(), eig_pairs.end(),
     [&](std::pair<double, Eigen::VectorXd>& a, std::pair<double, Eigen::VectorXd>& b) {
@@ -467,31 +467,38 @@ int main (int argc, char** argv)
 
   std::vector<PointType> reg_transformed_patches;
   std::vector<PointType> ori_transformed_patches;
+  int accum_patch_size = 0;
+  for(int i = 0; i < m; i++) accum_patch_size += patches[i].size();
+
+  reg_transformed_patches.reserve(accum_patch_size);
+  ori_transformed_patches.reserve(accum_patch_size);
+
+  VectorType tmp;
+  Eigen::Matrix3d reg_O_0(transformations[0].block(0,0,d,d));
+  Eigen::Vector3d reg_t_0(transformations[0].block(0,d,d,1));
+  Eigen::Matrix3d ori_O_0(original_transformations[0].block(0,0,d,d));
+  Eigen::Vector3d ori_t_0(original_transformations[0].block(0,d,d,1));
+
+
+  // computing the transformed patches for reference frame of patch one
   for(int i = 0; i < m; i++){
-    for(int j = 0; j < patches[i].size(); j++){
-      reg_transformed_patches.push_back(PointType((VectorType)(transformations[i]*patches[i][j].pos().homogeneous()).template head<3>()));
-      ori_transformed_patches.push_back(PointType((VectorType)(originalTransformations[i]*patches[i][j].pos().homogeneous()).template head<3>()));
+    for(int k = 0; k < patches[i].size(); k++){
+      // using computed transformations
+      tmp = (transformations[i]*patches[i][k].pos().homogeneous()).template head<3>();
+      tmp = reg_O_0.transpose() * (tmp - reg_t_0);
+      reg_transformed_patches.emplace_back(tmp);
+
+      // using ground truth transformations
+      tmp = (original_transformations[i]*patches[i][k].pos().homogeneous()).template head<3>();
+      tmp = ori_O_0.transpose() * (tmp - ori_t_0);
+      ori_transformed_patches.emplace_back(tmp);
     }
   }
 
-  std::vector<PointType> reg_transformed_patches_frame0;
-  std::vector<PointType> ori_transformed_patches_frame0;
-  Eigen::Matrix3d reg_O_0(transformations[0].block(0,0,d,d));
-  Eigen::Vector3d reg_t_0(transformations[0].block(0,d,d,1));
-  Eigen::Matrix3d ori_O_0(originalTransformations[0].block(0,0,d,d));
-  Eigen::Vector3d ori_t_0(originalTransformations[0].block(0,d,d,1));
-
-  for(PointType point : reg_transformed_patches){
-    reg_transformed_patches_frame0.push_back(PointType((VectorType) (reg_O_0.inverse() * (point.pos() - reg_t_0))));
-  }
-  for(PointType point : ori_transformed_patches){
-    ori_transformed_patches_frame0.push_back(PointType((VectorType) (ori_O_0.transpose() * (point.pos() - ori_t_0))));
-  }
-
   // construct kd_tree
-  gr::KdTree<Scalar> kd_tree(constructKdTree(ori_transformed_patches_frame0));
+  gr::KdTree<Scalar> kd_tree(constructKdTree(ori_transformed_patches));
   // compute lcp
-  Scalar lcp = compute_lcp(kd_tree, reg_transformed_patches_frame0);
+  Scalar lcp = compute_lcp(kd_tree, reg_transformed_patches);
   std::cout << "lcp = " << lcp << std::endl;
 
 
