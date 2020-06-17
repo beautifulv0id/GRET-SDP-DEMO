@@ -474,25 +474,25 @@ int main (int argc, char** argv)
   ori_transformed_patches.reserve(accum_patch_size);
 
   VectorType tmp;
-  Eigen::Matrix3d reg_O_0(transformations[0].block(0,0,d,d));
+  Eigen::Matrix3d reg_O_0(transformations[0].block(0,0,d,d).transpose());
   Eigen::Vector3d reg_t_0(transformations[0].block(0,d,d,1));
-  Eigen::Matrix3d ori_O_0(original_transformations[0].block(0,0,d,d));
+  Eigen::Matrix3d ori_O_0(original_transformations[0].block(0,0,d,d).transpose());
   Eigen::Vector3d ori_t_0(original_transformations[0].block(0,d,d,1));
 
 
   // computing the transformed patches for reference frame of patch one
   for(int i = 0; i < m; i++){
-    for(int k = 0; k < patches[i].size(); k++){
-      // using computed transformations
-      tmp = (transformations[i]*patches[i][k].pos().homogeneous()).template head<3>();
-      tmp = reg_O_0.transpose() * (tmp - reg_t_0);
-      reg_transformed_patches.emplace_back(tmp);
+    std::for_each(patches[i].begin(), patches[i].end(), [&](const PointType& point) { 
+        // using computed transformations
+        tmp = (transformations[i]*point.pos().homogeneous()).template head<3>();
+        tmp = reg_O_0 * (tmp - reg_t_0);
+        reg_transformed_patches.emplace_back(tmp);
 
-      // using ground truth transformations
-      tmp = (original_transformations[i]*patches[i][k].pos().homogeneous()).template head<3>();
-      tmp = ori_O_0.transpose() * (tmp - ori_t_0);
-      ori_transformed_patches.emplace_back(tmp);
-    }
+        // using ground truth transformations
+        tmp = (original_transformations[i]*point.pos().homogeneous()).template head<3>();
+        tmp = ori_O_0 * (tmp - ori_t_0);
+        ori_transformed_patches.emplace_back(tmp);
+    });
   }
 
   // construct kd_tree
