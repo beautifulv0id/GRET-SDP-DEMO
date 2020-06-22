@@ -9,14 +9,18 @@
 #include <atomic>
 #include <stdlib.h>     /* srand, rand */
 #include <time.h>       /* time */
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/json_parser.hpp>
+
 
 static std::string path_prefix  = "";
+namespace pt = boost::property_tree;
 
 static int n = 1000;
 static const int d = 3;
 static const int m = 5;
 static const double samp = 0.7; // sample probability
-using PointType = gr::Point3D<double>;
+using PointType = gr::IndexedPoint3D<double>;
 using Scalar = PointType::Scalar;
 using MatrixType = Eigen::Matrix<Scalar, d+1, d+1>;
 using VectorType = Eigen::Matrix<Scalar, d, 1>;
@@ -99,7 +103,7 @@ void GeneratePatches(const InRange& pointCloud, PatchRange& patches, TrRange& tr
       if(((double) rand() / (RAND_MAX)) < samp){
         v_ki = transformations.at(i).block(0,0,d,d).inverse() * (pointCloud.at(k).pos() -  transformations.at(i).block(0,d,d,1));
 
-        patches[i].push_back(PointType(v_ki));
+        patches[i].push_back(PointType(v_ki, k));
 
         L(k,k)++;
         L(k,n+i)--;
@@ -119,7 +123,7 @@ void GeneratePatches(const InRange& pointCloud, PatchRange& patches, TrRange& tr
       //v_ki = transformations.at(i).block(0,0,d,d) * pointCloud.at(k).pos() + transformations.at(i).block(0,d,d,1);
       v_ki = transformations.at(i).block(0,0,d,d).inverse() * (pointCloud.at(k).pos() -  transformations.at(i).block(0,d,d,1));
       
-      patches[i].push_back(PointType(v_ki));
+      patches[i].push_back(PointType(v_ki, k));
 
       L(k,k)++;
       L(k,n+i)--;
@@ -292,13 +296,14 @@ void ComputeRelativeTrafos(const TrRange& transformations, TrRange& relTransform
 
 }
 
-void writeMatrix(Eigen::Ref<Eigen::MatrixXd> m, std::string filename){
+void writeMatrix(Eigen::Ref<const Eigen::MatrixXd> m, std::string filename){
   std::ofstream file(path_prefix + filename);
   if(file.is_open()){
     file << m << '\n';
   }
   file.close();
 }
+
 
 template <typename PointRange>
 void writePoints(const PointRange& vec, std::string filename){
@@ -374,6 +379,57 @@ void transformToCommonFrame(CommonPointRange& P, const PatchRange& patches, cons
       vec = (mat * patches[i][j].pos().homogeneous()).template head<3>();
       P.push_back(PointType(vec));
     }
+  }
+}
+
+template <typename PatchRange, typename TrRange>
+void exportConfig(const PatchRange& patches, const TrRange& transformations){
+
+  // export patches
+  std::ofstream file;
+  for(int i = 0; i < patches.size(); i++){
+    file.open("data/patch" + std::to_string(i) + ".dat");
+    if(file.is_open()){
+      file << patches[i].size() << std::endl;
+      for(const PointType& point : patches[i]){
+        file << point.getIndex() << " ";
+        file << point.x() << " ";
+        file << point.y() << " ";
+        file << point.z() << " ";
+        file << std::endl;
+      }
+    }
+    file.close();
+  }
+
+  // export config file
+  file.open("data/config.json");
+  file << "{" << std::endl;
+  file << "\t" << "\"n\":" << "\t" << n << "," << std::endl;
+  file << "\t" << "\"m\":" << "\t" << m << "," << std::endl;
+  file << "\t" << "\"d\":" << "\t" << d << "," << std::endl;
+
+  file << "\t" <<  "\"patches\":" << "[";
+  for(int i = 0; i < patches.size(); i++){
+    file << "\"patch" + std::to_string(i) + ".dat\"" << ((i == m-1)? "" : ", ");
+  }
+  file << "]," << std::endl;
+  file << "\t" <<  "\"gt_trafos\":" << "[";
+  for(int i = 0; i < patches.size(); i++){
+    file << "\"gt_trafo" + std::to_string(i) + ".dat\"" << ((i == m-1)? "" : ", ");
+  }
+  file << "]" << std::endl;
+  file << "}";
+  file.close();
+
+  // export ground truth transformations
+  for (int i = 0; i < transformations.size(); i++){
+    file.open("data/gt_trafo" + std::to_string(i) + ".dat");
+    if(file.is_open()){
+      file << d+1 << " " << d+1 << std::endl;
+      file << transformations[i];
+    }
+    file.close();
   }
 }
 
@@ -486,12 +542,12 @@ int main (int argc, char** argv)
         // using computed transformations
         tmp = (transformations[i]*point.pos().homogeneous()).template head<3>();
         tmp = reg_O_0 * (tmp - reg_t_0);
-        reg_transformed_patches.emplace_back(tmp);
+        reg_transformed_patches.emplace_back(tmp, point.getIndex());
 
         // using ground truth transformations
         tmp = (original_transformations[i]*point.pos().homogeneous()).template head<3>();
         tmp = ori_O_0 * (tmp - ori_t_0);
-        ori_transformed_patches.emplace_back(tmp);
+        ori_transformed_patches.emplace_back(tmp, point.getIndex());
     });
   }
 
@@ -502,6 +558,7 @@ int main (int argc, char** argv)
   std::cout << "lcp = " << lcp << std::endl;
 
 
+  exportConfig(patches, original_transformations);
   // export matrices for usage in matlab
   // writePoints(spiral, "SpiralMat.dat");
   // for(int i = 0; i < m; i++){

@@ -16,7 +16,11 @@ find_package(SDPA REQUIRED)
 find_package (Eigen3 3.3 REQUIRED NO_MODULE)
 include_directories( ${EIGEN3_INCLUDE_DIR} ) 
 
+
+find_package(Boost REQUIRED)
+include_directories( ${Boost_INCLUDE_DIR} )
+
 include_directories(${SDPA_INCLUDE_DIRS})
 
 add_executable(gret-sdp-demo gret-sdp-demo.cpp)
-target_link_libraries(gret-sdp-demo ${SDPA_LIBRARIES} Eigen3::Eigen ${OpenGR_LIBRARIES} gr::utils gr::algo) 
+target_link_libraries(gret-sdp-demo ${SDPA_LIBRARIES} ${Boost_LIBRARIES} Eigen3::Eigen ${OpenGR_LIBRARIES} gr::utils gr::algo) 
