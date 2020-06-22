@@ -20,13 +20,15 @@ static int n = 1000;
 static const int d = 3;
 static const int m = 5;
 static const double samp = 0.7; // sample probability
-using PointType = gr::IndexedPoint3D<double>;
+using PointType = gr::Point3D<double>;
 using Scalar = PointType::Scalar;
 using MatrixType = Eigen::Matrix<Scalar, d+1, d+1>;
 using VectorType = Eigen::Matrix<Scalar, d, 1>;
 using RigidTransformation = std::tuple<MatrixType, VectorType>;
 using MatrixX = Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>;
 using VectorX = Eigen::Matrix<Scalar, Eigen::Dynamic, 1>;
+using PatchType = vector<pair<PointType, int>>;
+
 
 template <typename InRange>
 void CreateSpiral(InRange& in, const size_t n){
@@ -103,7 +105,7 @@ void GeneratePatches(const InRange& pointCloud, PatchRange& patches, TrRange& tr
       if(((double) rand() / (RAND_MAX)) < samp){
         v_ki = transformations.at(i).block(0,0,d,d).inverse() * (pointCloud.at(k).pos() -  transformations.at(i).block(0,d,d,1));
 
-        patches[i].push_back(PointType(v_ki, k));
+        patches[i].emplace_back(PointType(v_ki), k);
 
         L(k,k)++;
         L(k,n+i)--;
@@ -123,7 +125,7 @@ void GeneratePatches(const InRange& pointCloud, PatchRange& patches, TrRange& tr
       //v_ki = transformations.at(i).block(0,0,d,d) * pointCloud.at(k).pos() + transformations.at(i).block(0,d,d,1);
       v_ki = transformations.at(i).block(0,0,d,d).inverse() * (pointCloud.at(k).pos() -  transformations.at(i).block(0,d,d,1));
       
-      patches[i].push_back(PointType(v_ki, k));
+      patches[i].emplace_back(PointType(v_ki), k);
 
       L(k,k)++;
       L(k,n+i)--;
@@ -386,13 +388,17 @@ template <typename PatchRange, typename TrRange>
 void exportConfig(const PatchRange& patches, const TrRange& transformations){
 
   // export patches
+  PointType point;
+  int index;
   std::ofstream file;
   for(int i = 0; i < patches.size(); i++){
     file.open("data/patch" + std::to_string(i) + ".dat");
     if(file.is_open()){
       file << patches[i].size() << std::endl;
-      for(const PointType& point : patches[i]){
-        file << point.getIndex() << " ";
+      for(const std::pair<PointType,int> & point_with_index : patches[i]){
+        point = point_with_index.first;
+        index = point_with_index.second;
+        file << index << " ";
         file << point.x() << " ";
         file << point.y() << " ";
         file << point.z() << " ";
@@ -447,7 +453,7 @@ int main (int argc, char** argv)
   //writePoints(spiral, "spiral.dat");
 
   vector<MatrixType> original_transformations;
-  vector<vector<PointType>> patches(m);
+  vector<PatchType> patches(m);
   MatrixX L(n+m, n+m);
   MatrixX B(m*d, n+m);
   MatrixX D(m*d, m*d);
@@ -521,8 +527,8 @@ int main (int argc, char** argv)
     transformations.push_back(trafo);
   }
 
-  std::vector<PointType> reg_transformed_patches;
-  std::vector<PointType> ori_transformed_patches;
+  vector<PointType> reg_transformed_patches;
+  vector<PointType> ori_transformed_patches;
   int accum_patch_size = 0;
   for(int i = 0; i < m; i++) accum_patch_size += patches[i].size();
 
@@ -537,18 +543,22 @@ int main (int argc, char** argv)
 
 
   // computing the transformed patches for reference frame of patch one
+  PointType point;
+  int index;
   for(int i = 0; i < m; i++){
-    std::for_each(patches[i].begin(), patches[i].end(), [&](const PointType& point) { 
+    for (const pair<PointType, int>& point_with_index : patches[i]){
+        point = point_with_index.first;
+        index = point_with_index.second;
         // using computed transformations
         tmp = (transformations[i]*point.pos().homogeneous()).template head<3>();
         tmp = reg_O_0 * (tmp - reg_t_0);
-        reg_transformed_patches.emplace_back(tmp, point.getIndex());
+        reg_transformed_patches.emplace_back(PointType(tmp));
 
         // using ground truth transformations
         tmp = (original_transformations[i]*point.pos().homogeneous()).template head<3>();
         tmp = ori_O_0 * (tmp - ori_t_0);
-        ori_transformed_patches.emplace_back(tmp, point.getIndex());
-    });
+        ori_transformed_patches.emplace_back(PointType(tmp));
+    }
   }
 
   // construct kd_tree
