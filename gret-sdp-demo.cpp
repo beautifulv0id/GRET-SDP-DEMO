@@ -12,6 +12,10 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 
+#include "fusion.h"
+using namespace mosek::fusion;
+using namespace monty;
+
 
 static std::string path_prefix  = "";
 namespace pt = boost::property_tree;
@@ -149,7 +153,7 @@ void printDimacsError(double dimacs_error[7],char* printFormat,
               FILE* fpout);
 
 
-void SolveSDP(Eigen::Ref<const MatrixX> C, Eigen::Ref<MatrixX> G){
+void SolveSDP_SDPA(Eigen::Ref<const MatrixX> C, Eigen::Ref<MatrixX> G){
   SDPA	Problem;
 
   // All parameteres are renewed
@@ -261,6 +265,54 @@ void SolveSDP(Eigen::Ref<const MatrixX> C, Eigen::Ref<MatrixX> G){
   Eigen::Map<Eigen::MatrixXd> Gmap(yMat, d*m, d*m);
   G = Gmap;
 }
+
+
+void SolveSDP_MOSEK(Eigen::Ref<const MatrixX> C, Eigen::Ref<MatrixX> G){
+  // Create a model with the name 'lo1'
+  Model::t M = new Model("gret-sdp"); auto _M = finally([&]() { M->dispose(); });
+
+  auto c_ptr = new_array_ptr<Scalar, 2>(shape_t<2>(m*d,m*d));
+  std::copy(C.data(), C.data()+C.size(), c_ptr->begin());
+  Matrix::t C_ = Matrix::dense(c_ptr);
+
+  M->setLogHandler([ = ](const std::string & msg) { std::cout << msg << std::flush; } );
+
+  auto G_ = M->variable(Domain::inPSDCone(m*d));
+
+  auto row = new_array_ptr<int, 1>(shape_t<1>(1));
+  auto col = new_array_ptr<int, 1>(shape_t<1>(1));
+  auto val = new_array_ptr<Scalar, 1>({1.f});
+
+  Matrix::t F;
+  Matrix::t B;
+
+  for (int i = 0; i < m; i++){
+    for (int j = 0; j < d; j++){
+      for (int k = j; k < d; k++)
+      {
+        *row->raw() = i*d+j;
+        *col->raw() = i*d+k;
+        F = Matrix::sparse(n,n,row,col,val);
+        if(j == k)
+          M->constraint(G_->index(i*d+j, i*d+k),Domain::equalsTo(1.0));
+        else
+          M->constraint(G_->index(i*d+j, i*d+k), Domain::equalsTo(0.0));
+      }
+    }
+  }  
+  
+  // Set the objective function to (Tr(CG)=sum(C⋅G))
+  M->objective("obj", ObjectiveSense::Minimize, Expr::dot(C_, G_));
+
+  // Solve the problem
+  M->solve();
+  
+  // Get the solution values
+  auto sol = G_->level();
+  Eigen::Map<Eigen::MatrixXd> Gmap(sol->begin(), d*m, d*m);
+  G = Gmap;
+}
+
 
 
 template <typename TrRange>
@@ -470,7 +522,8 @@ int main (int argc, char** argv)
   // solve the SDP (P2) using C
   Eigen::Matrix<Scalar, m*d, m*d> G;
 
-  SolveSDP(C, G);
+  //SolveSDP_SDPA(C, G);
+  SolveSDP_MOSEK(C,G);
 
   // compute top d eigenvalues and eigenvectors
   Eigen::EigenSolver<Eigen::Matrix<Scalar, m*d, m*d>> s(G);
