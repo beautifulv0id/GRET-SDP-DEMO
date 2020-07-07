@@ -279,25 +279,11 @@ void SolveSDP_MOSEK(Eigen::Ref<const MatrixX> C, Eigen::Ref<MatrixX> G){
 
   auto G_ = M->variable(Domain::inPSDCone(m*d));
 
-  auto row = new_array_ptr<int, 1>(shape_t<1>(1));
-  auto col = new_array_ptr<int, 1>(shape_t<1>(1));
-  auto val = new_array_ptr<Scalar, 1>({1.f});
-
-  Matrix::t F;
-  Matrix::t B;
-
   for (int i = 0; i < m; i++){
     for (int j = 0; j < d; j++){
-      for (int k = j; k < d; k++)
-      {
-        *row->raw() = i*d+j;
-        *col->raw() = i*d+k;
-        F = Matrix::sparse(n,n,row,col,val);
-        if(j == k)
-          M->constraint(G_->index(i*d+j, i*d+k),Domain::equalsTo(1.0));
-        else
+          M->constraint(G_->index(i*d+j, i*d+j),Domain::equalsTo(1.0));
+      for (int k = j+1; k < d; k++)
           M->constraint(G_->index(i*d+j, i*d+k), Domain::equalsTo(0.0));
-      }
     }
   }  
   
