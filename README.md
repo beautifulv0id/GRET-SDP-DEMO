@@ -7,6 +7,6 @@ Then:
 ```bash
 cd GRET-SDP-DEMO
 mkdir build && cd build
-cmake .. -DSDPA_ROOT_DIR=path/to/SDPA
+cmake .. -DSDPA_ROOT_DIR=path/to/SDPA -DMOSEK_ROOT_DIR=path/to/MOSEK
 make
 ```
